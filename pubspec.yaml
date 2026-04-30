@@ -36,6 +36,12 @@ dependencies:
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.2.3
   share_plus: ^10.0.2
+  file_picker: ^8.1.2
+  path_provider: ^2.1.4
+  path: ^1.9.1
+  google_sign_in: ^6.2.1
+  googleapis: ^13.2.0
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
@@ -63,10 +69,13 @@ flutter:
   assets:
     - assets/icon.png
 # Configuration for `flutter_launcher_icons` to generate app launcher icons
-flutter_icons:
+flutter_launcher_icons:
   image_path: "assets/icon.png"
   android: true
   ios: true
+  remove_alpha_ios: true
+  adaptive_icon_foreground: "assets/icon.png"
+  adaptive_icon_background: "#BB281E"
   web:
     generate: true
   windows:
@@ -75,7 +84,6 @@ flutter_icons:
     generate: true
   linux:
     generate: true
-  adaptive_icon_background: "#ffffff"
 # For details regarding adding assets from package dependencies, see
 # https://flutter.dev/to/asset-from-package
 

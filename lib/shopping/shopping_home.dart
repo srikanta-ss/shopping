@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
+import '../backup-restore/backup.dart';
 import 'shopping_sublist.dart';
 
 class ShoppingHome extends StatefulWidget {
@@ -254,7 +255,7 @@ class _ShoppingHomeState extends State<ShoppingHome> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -380,9 +381,9 @@ class _ShoppingHomeState extends State<ShoppingHome> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.2)),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -483,6 +484,7 @@ class _ShoppingHomeState extends State<ShoppingHome> {
                             _shoppingLists.insert(0, name);
                           });
                           await _saveShoppingLists();
+                          if (!context.mounted) return;
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Created list: $name')),
@@ -500,84 +502,90 @@ class _ShoppingHomeState extends State<ShoppingHome> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 187, 40, 30),
-        title: const Text(
-          'Shopping List',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            tooltip: 'Exit App',
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: _confirmExit,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmExit();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Color.fromARGB(255, 187, 40, 30),
+          title: const Text(
+            'Shopping List',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-        ],
-      ),
-      body: _shoppingLists.isEmpty
-          ? const Center(
-              child: Text(
-                'No shopping lists yet!\nTap the + button to create your first list.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            )
-          : ReorderableListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _shoppingLists.length,
-              onReorder: _onReorder,
-              buildDefaultDragHandles: false,
-              itemBuilder: (context, index) {
-                final listName = _shoppingLists[index];
-                return Card(
-                  key: ValueKey(listName),
-                  elevation: 2,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  color: const Color.fromARGB(255, 252, 255, 172),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        drawer: _buildDrawer(context),
+        body: _shoppingLists.isEmpty
+            ? const Center(
+                child: Text(
+                  'No shopping lists yet!\nTap the + button to create your first list.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+              )
+            : ReorderableListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _shoppingLists.length,
+                onReorder: _onReorder,
+                buildDefaultDragHandles: false,
+                itemBuilder: (context, index) {
+                  final listName = _shoppingLists[index];
+                  return Card(
+                    key: ValueKey(listName),
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    color: const Color.fromARGB(255, 252, 255, 172),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    leading: const Icon(Icons.shopping_cart, color: Colors.red),
-                    title: Text(
-                      listName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
                       ),
-                    ),
-                    trailing: ReorderableDragStartListener(
-                      index: index,
-                      child: const Icon(Icons.drag_handle, color: Colors.grey),
-                    ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              ShoppingSublistPage(listName: listName),
+                      leading: const Icon(
+                        Icons.shopping_cart,
+                        color: Colors.red,
+                      ),
+                      title: Text(
+                        listName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
-                      );
-                    },
-                    onLongPress: () {
-                      _showItemActionsDialog(index);
-                    },
-                  ),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateListDialog,
-        backgroundColor: const Color.fromARGB(255, 187, 40, 30),
-        shape: const CircleBorder(),
-        elevation: 6,
-        child: const Icon(Icons.add, color: Colors.white),
+                      ),
+                      trailing: ReorderableDragStartListener(
+                        index: index,
+                        child: const Icon(
+                          Icons.drag_handle,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ShoppingSublistPage(listName: listName),
+                          ),
+                        );
+                      },
+                      onLongPress: () {
+                        _showItemActionsDialog(index);
+                      },
+                    ),
+                  );
+                },
+              ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showCreateListDialog,
+          backgroundColor: const Color.fromARGB(255, 187, 40, 30),
+          shape: const CircleBorder(),
+          elevation: 6,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
@@ -639,7 +647,7 @@ class _ShoppingHomeState extends State<ShoppingHome> {
                 Container(
                   width: double.infinity,
                   height: 1,
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withValues(alpha: 0.2),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -697,6 +705,64 @@ class _ShoppingHomeState extends State<ShoppingHome> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(color: Color.fromARGB(255, 187, 40, 30)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Icon(Icons.shopping_cart, color: Colors.white, size: 32),
+                const SizedBox(height: 12),
+                const Text(
+                  'Shopping List',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.backup),
+            title: const Text('Backup/Restore'),
+            onTap: () async {
+              Navigator.of(context).pop();
+              final restored = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(builder: (_) => const BackupRestorePage()),
+              );
+              if (restored == true) {
+                await _loadShoppingLists();
+              }
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.exit_to_app, color: Colors.red),
+            title: const Text('Exit', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.of(context).pop();
+              _confirmExit();
+            },
+          ),
+        ],
+      ),
     );
   }
 }
